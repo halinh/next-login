@@ -35,5 +35,7 @@ login page served by `mock-oidc-provider`.
 
 - `GET /login` — starts the authorization flow, redirects to the IdP.
 - `GET /callback` — completes the flow, sets the session cookie, redirects to `/`.
-- `GET /logout` — clears the session cookie, redirects to `/`.
+- `GET /logout` — clears the session cookie, then redirects the browser through
+  the IdP's `end_session_endpoint` (RP-initiated logout) so the mock's SSO session
+  is cleared too; the IdP redirects back to `/`.
 - `/` — shows decoded claims when logged in, or a login link when not.
