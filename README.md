@@ -14,6 +14,15 @@ This app never calls `decode-service` directly — `request-oauth2`'s
 `authenticate()` call does that server-to-server internally. There is no
 `/api/decode` route in this app.
 
+### Related demo
+
+`react-login` also has a confidential-client flow. The difference: `next-login`
+runs the whole exchange + decode server-side through
+`createOidcClient().authenticate()`, whereas `react-login` keeps
+`exchangeCodeForToken` in the browser and points its `tokenEndpoint` at
+`decode-service`'s `POST /token` proxy, which injects the `client_secret` and
+returns the decoded claims alongside the tokens.
+
 ## Setup
 
 ```bash
@@ -30,6 +39,12 @@ npm run dev
 
 Then open http://localhost:3000, click "Log in", and complete the mock
 login page served by `mock-oidc-provider`.
+
+## Test
+
+```bash
+npm test          # vitest (route handlers with a mocked oidcClient; cookie parsing)
+```
 
 ## Routes
 
