@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { OAuth2Error } from 'request-oauth2';
+import { OAuth2Error, ProxyTokenExchangeError } from 'request-oauth2';
 import { oidcClient } from '@/lib/oidcClient';
 import { OAUTH_STATE_COOKIE, SESSION_COOKIE, parseOAuthStateCookie } from '@/lib/cookies';
 
@@ -43,7 +43,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const session = await oidcClient.authenticate(code, storedState.codeVerifier);
+    // decode-service's /token proxy injects the client_secret, exchanges the
+    // code, and returns the tokens with the decoded id_token claims attached.
+    const tokenResponse = await oidcClient.exchangeCodeForTokenViaBackend(
+      code,
+      storedState.codeVerifier,
+    );
+    const session = oidcClient.createSession(tokenResponse, tokenResponse.claims ?? null);
 
     const response = NextResponse.redirect(new URL('/', request.url));
     response.cookies.set(SESSION_COOKIE, JSON.stringify(session), {
@@ -54,6 +60,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     response.cookies.delete(OAUTH_STATE_COOKIE);
     return response;
   } catch (error) {
+    if (error instanceof ProxyTokenExchangeError) {
+      return errorPage(`Token exchange failed: ${error.message}`, error.status ?? 502);
+    }
     if (error instanceof OAuth2Error) {
       return errorPage(`${error.name}: ${error.message}`, error.status ?? 502);
     }
